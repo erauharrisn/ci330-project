@@ -137,7 +137,7 @@ void showPassword() {
     }
 
     int site_len, username_len, ciphertext_len, plaintext_len;
-    char site[64], username[64], char ciphertext[512], plaintext[512];
+    char site[64], username[64], ciphertext[512], plaintext[512];
 
     while (fread(&site_len, sizeof(int), 1, file) == 1) {
         fread(site, 1, site_len, file);
