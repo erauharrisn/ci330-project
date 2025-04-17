@@ -8,6 +8,67 @@
 char key[16] = "s0ftw4r3secur1ty"; 
 char iv[16] = "superdupersecret";
 
+int main() {
+    prompt();
+    return 0;
+}
+
+void prompt() {
+    int choice;
+    int flag = 1;
+    char* site = malloc(64);
+    char* username = malloc(64);
+    char* password = malloc(64);
+    char* plaintext = malloc(512);
+    char* ciphertext = malloc(512);
+    int ciphertext_len = 0;
+    int plaintext_len = 0;
+
+    while (flag) {
+        printf("Please enter the number (1-4) for the choice you would like to do:\n");
+        printf("------------------------------------------------------------\n");
+        printf("Option 1: Save a new password\n");
+        printf("Option 2: Delete a password\n");
+        printf("Option 3: Show password(s)\n");
+        printf("Option 4: Exit the password manager\n");
+
+        scanf("%d", &choice);
+        getchar(); // Clear newline
+
+        switch (choice) {
+            case 1:
+                printf("Enter the company/site associated with the password: ");
+                scanf("%s", site);
+                printf("Enter the username associated with the password: ");
+                scanf("%s", username);
+                printf("Enter the password [limit 128 chars]: ");
+                scanf("%s", password);
+
+                encryptPassword(password, ciphertext, &ciphertext_len);
+                savePassword(site, username, ciphertext, ciphertext_len);
+                break;
+            case 2:
+                deletePassword();
+                break;
+            case 3:
+                showPassword();
+                break;
+            case 4:
+                flag = 0;
+                break;
+            default:
+                printf("Enter a valid choice\n");
+                break;
+        }
+    }
+
+    free(site);
+    free(username);
+    free(password);
+    free(plaintext);
+    free(ciphertext);
+}
+
 void encryptPassword(const char* password, char* ciphertext, int* ciphertext_len) {
     int len;
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
@@ -63,21 +124,15 @@ void savePassword(const char* site, const char* username, char* ciphertext, int 
     fclose(file);
 }
 
-void deletePassword() {
-    // Stub
-}
-
-void showPasswords() {
+void showPassword() {
     FILE *file = fopen("creds.enc", "rb");
     if (!file) {
         perror("Failed to open file");
         return;
     }
 
-    int site_len, username_len, ciphertext_len;
-    char site[256], username[256];
-    char ciphertext[512], plaintext[512];
-    int plaintext_len;
+    int site_len, username_len, ciphertext_len, plaintext_len;
+    char site[64], username[64], char ciphertext[512], plaintext[512];
 
     while (fread(&site_len, sizeof(int), 1, file) == 1) {
         fread(site, 1, site_len, file);
@@ -99,71 +154,6 @@ void showPasswords() {
     fclose(file);
 }
 
-
-void prompt() {
-    int choice;
-    int flag = 1;
-    char* site = malloc(128);
-    char* username = malloc(128);
-    char* password = malloc(128);
-    char* plaintext = malloc(512);
-    char* ciphertext = malloc(512);
-    int ciphertext_len = 0;
-    int plaintext_len = 0;
-
-    while (flag) {
-        printf("Please enter the number (1-4) for the choice you would like to do:\n");
-        printf("------------------------------------------------------------\n");
-        printf("Option 1: Save a new password\n");
-        printf("Option 2: Delete a password\n");
-        printf("Option 3: Show password(s)\n");
-        printf("Option 4: Exit the password manager\n");
-
-        scanf("%d", &choice);
-        getchar(); // Clear newline
-
-        switch (choice) {
-            case 1:
-                printf("Enter the company/site associated with the password: ");
-                scanf("%s", site);
-                printf("Enter the username associated with the password: ");
-                scanf("%s", username);
-                printf("Enter the password [limit 128 chars]: ");
-                scanf("%s", password);
-
-                encryptPassword(password, ciphertext, &ciphertext_len);
-                savePassword(site, username, ciphertext, ciphertext_len);
-                break;
-            case 2:
-                deletePassword();
-                break;
-            case 3:
-                showPasswords();
-                break;
-            case 4:
-                flag = 0;
-                break;
-            default:
-                printf("Enter a valid choice\n");
-                break;
-        }
-    }
-
-    free(site);
-    free(username);
-    free(password);
-    free(plaintext);
-    free(ciphertext);
-}
-
-void print_hex(const char* data, int len) {
-    for (int i = 0; i < len; i++) {
-        printf("%02x", (unsigned char)data[i]);
-    }
-    printf("\n");
-}
-
-int main() {
-    prompt();
-    return 0;
+void deletePassword() {
+    // Stub
 }
