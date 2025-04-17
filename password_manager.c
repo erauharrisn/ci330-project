@@ -125,6 +125,11 @@ void savePassword(const char* site, const char* username, char* ciphertext, int 
 }
 
 void showPassword() {
+    /* Add the following checks here: 
+       - Run the whoami command using execvp to check the user that is currently using the program. You will need this for the next command.
+       - Check if that user already has a .pm directory (Check the exit code from the "ls /home/[username]/.pm/" command?)
+       - If not, make the directory. If yes, open the creds.enc file within that directory (see below)
+    */
     FILE *file = fopen("creds.enc", "rb");
     if (!file) {
         perror("Failed to open file");
@@ -155,5 +160,5 @@ void showPassword() {
 }
 
 void deletePassword() {
-    // Stub
+    // Incomplete
 }
