@@ -6,4 +6,3 @@ void savePassword(const char* site, const char* username, char* ciphertext, int 
 void deletePassword();
 void showPasswords();
 void prompt();
-void print_hex(const char* data, int len);
