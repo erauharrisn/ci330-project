@@ -5,6 +5,6 @@ Install required dependencies for the code:
 **apt-get install libssl-dev**
 
 Make sure that the C and header files are both in the same directory. Now compile the code with GCC: 
-**gcc password_manager.h -lssl -lcrypto**
+**gcc password_manager.c -lssl -lcrypto**
 
 This concludes the set up. 
