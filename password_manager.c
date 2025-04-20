@@ -160,6 +160,7 @@ void decryptPassword(char* ciphertext, char* plaintext, int ciphertext_len, int*
 
 // Saves the site, username, and encrypted password (ciphertext) to a file in binary append mode. 
 void savePassword(const char* site, const char* username, char* ciphertext, int ciphertext_len) {
+    ensureUserDirectory(); 
     FILE *file = fopen("creds.enc", "ab"); // Binary append mode
     if (!file) {
         perror("Failed to open file");
