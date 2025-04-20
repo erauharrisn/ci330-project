@@ -3,13 +3,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h> 
+#include <sys/stat.h> 
+#include <dirent.h> 
 #include "password_manager.h"
 
-#define ELEMENT_LENGTH 10
+// The maximum number of credential pairs that can be encrypted and stored 
+#define MAX_ENTRIES 100
 
+// Hard-coded values for the key and IV. They are listed here for interoperability. 
 char key[16] = "s0ftw4r3secur1ty"; 
 char iv[16] = "superdupersecret";
 
+/* The main function calls the prompt function, which is a while loop that iterates
+   until the user chooses to exit the program. 
+*/
 int main() {
     prompt();
     return 0;
@@ -17,7 +25,12 @@ int main() {
 
 void prompt() {
     int choice;
-    int flag = 1;
+    int flag = 1; // Value that controls how long the while loop runs
+    
+    /* Values for the site, username, and password are dynamically allocated 64 bytes (chars), 
+       whereas the plaintext and ciphertext are allocated 512 bytes. This is because during 
+       encryption, the ciphertext can become larger than the original 64 bytes due to padding. */
+    
     char* site = malloc(64);
     char* username = malloc(64);
     char* password = malloc(64);
@@ -43,7 +56,7 @@ void prompt() {
                 scanf("%s", site);
                 printf("Enter the username associated with the password: ");
                 scanf("%s", username);
-                printf("Enter the password [limit 128 chars]: ");
+                printf("Enter the password [limit 63 chars]: ");
                 scanf("%s", password);
 
                 encryptPassword(password, ciphertext, &ciphertext_len);
@@ -56,7 +69,7 @@ void prompt() {
                 showPassword();
                 break;
             case 4:
-                flag = 0;
+                flag = 0; // Terminates the while loop 
                 break;
             default:
                 printf("Enter a valid choice\n");
@@ -64,6 +77,7 @@ void prompt() {
         }
     }
 
+    // Frees all variables that were assigned memory with malloc 
     free(site);
     free(username);
     free(password);
@@ -71,6 +85,45 @@ void prompt() {
     free(ciphertext);
 }
 
+// Makes sure that the program is in the /home/[user]/.pm directory. 
+void ensureUserDirectory() {
+    const char *user = getenv("USER");
+    if (!user) {
+        perror("getenv USER");
+        exit(1);
+    }
+
+    char path[128];
+    snprintf(path, sizeof(path), "/home/%s/.pm", user);
+
+    DIR *dir = opendir(path);
+    if (!dir) {
+        // Directory doesn't exist, create it
+        if (mkdir(path, 0700) == -1) {
+            perror("mkdir failed");
+            exit(1);
+        }
+        printf("Created user directory: %s\n", path);
+    } else {
+        closedir(dir);
+    }
+
+    // Move into the directory for file operations
+    if (chdir(path) == -1) {
+        perror("chdir failed");
+        exit(1);
+    }
+}
+
+// Traverses through the array to print all saved credentials from the creds.enc file 
+void printArray(struct list *creds, int arr_len) {
+    int i; 
+    for (i = 0; i < arr_len; i++) {
+    	printf("%d. Site: %s\tUsername: %s\tPassword: %s\n", i+1, creds[i].site, creds[i].user, creds[i].pass); 
+    }    
+}
+
+// Creates a new EVP cipher in OpenSSL to encrypt the password and store it in the ciphertext variable
 void encryptPassword(const char* password, char* ciphertext, int* ciphertext_len) {
     int len;
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
@@ -87,6 +140,7 @@ void encryptPassword(const char* password, char* ciphertext, int* ciphertext_len
     EVP_CIPHER_CTX_free(ctx);
 }
 
+// The ciphertext argument is passed in and then the decrypted contents are stored in the plaintext variable
 void decryptPassword(char* ciphertext, char* plaintext, int ciphertext_len, int* plaintext_len) {
     int len;
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
@@ -104,8 +158,9 @@ void decryptPassword(char* ciphertext, char* plaintext, int ciphertext_len, int*
     EVP_CIPHER_CTX_free(ctx);
 }
 
+// Saves the site, username, and encrypted password (ciphertext) to a file in binary append mode. 
 void savePassword(const char* site, const char* username, char* ciphertext, int ciphertext_len) {
-    FILE *file = fopen("creds.enc", "ab"); // Append in binary mode
+    FILE *file = fopen("creds.enc", "ab"); // Binary append mode
     if (!file) {
         perror("Failed to open file");
         return;
@@ -126,13 +181,11 @@ void savePassword(const char* site, const char* username, char* ciphertext, int 
     fclose(file);
 }
 
+// Shows the plaintext credentials of all saved entries
 void showPassword() {
-    /* Add the following checks here: 
-       - Run the whoami command using execvp to check the user that is currently using the program. You will need this for the next command.
-       - Check if that user already has a .pm directory (Check the exit code from the "ls /home/[username]/.pm/" command?)
-       - If not, make the directory. If yes, open the creds.enc file within that directory (see below)
-    */
-    struct list creds[ELEMENT_LENGTH]; // An array that holds 10 struct list elements 
+    ensureUserDirectory(); 
+
+    struct list creds[MAX_ENTRIES]; // An array that holds [MAX_ENTRIES] pairs of credentials 
     int i = 0; // A counter to loop through elements of the array 
     int arr_len = 0; 
     
@@ -158,9 +211,9 @@ void showPassword() {
 
         decryptPassword(ciphertext, plaintext, ciphertext_len, &plaintext_len);
         plaintext[plaintext_len] = '\0';
-        strcpy(creds[i].site, site); 
-        strcpy(creds[i].user, username); 
-        strcpy(creds[i].pass, plaintext);
+        strncpy(creds[i].site, site, 63); 
+        strncpy(creds[i].user, username, 63); 
+        strncpy(creds[i].pass, plaintext, 63);
         i++;
     }
     printf("\nThe current saved passwords are:\n"); 
@@ -170,9 +223,12 @@ void showPassword() {
     fclose(file);
 }
 
+/* Deletes a password by writing all entries back to the creds.enc file except for the one selected */
 void deletePassword() {
+    ensureUserDirectory(); 
+
     int num;
-    struct list creds[ELEMENT_LENGTH];
+    struct list creds[MAX_ENTRIES];
     int i = 0, arr_len = 0;
 
     // Open the file and load all entries (same logic as in showPassword)
@@ -247,11 +303,4 @@ void deletePassword() {
 
     fclose(file);
     printf("Entry deleted successfully.\n");
-}
-
-void printArray(struct list *creds, int arr_len) {
-    int i; 
-    for (i = 0; i < arr_len; i++) {
-    	printf("%d. Site: %s\tUsername: %s\tPassword: %s\n", i+1, creds[i].site, creds[i].user, creds[i].pass); 
-    }    
 }
