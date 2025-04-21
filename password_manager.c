@@ -255,9 +255,9 @@ void deletePassword() {
         decryptPassword(ciphertext, plaintext, ciphertext_len, &plaintext_len);
         plaintext[plaintext_len] = '\0';
 
-        strcpy(creds[i].site, site);
-        strcpy(creds[i].user, username);
-        strcpy(creds[i].pass, plaintext);
+        strncpy(creds[i].site, site, 63);
+        strncpy(creds[i].user, username, 63);
+        strncpy(creds[i].pass, plaintext, 63);
         i++;
     }
     fclose(file);
