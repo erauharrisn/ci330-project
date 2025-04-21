@@ -39,7 +39,7 @@ void prompt() {
     int plaintext_len = 0;
 
     while (flag) {
-        printf("Please enter the number (1-4) for the choice you would like to do:\n");
+        printf("\nPlease enter the number (1-4) for the choice you would like to do:\n");
         printf("------------------------------------------------------------\n");
         printf("Option 1: Save a new password\n");
         printf("Option 2: Delete a password\n");
